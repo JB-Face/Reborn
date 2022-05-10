@@ -4,16 +4,23 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2022-05-08 16:54:43
+LastEditTime: 2022-05-11 01:20:05
 '''
 from git.repo import Repo
 import os
 def git_init(path:str,url:str):
+    print('----------------------------居然没有 初始化，等我初始化----------------------------------')
     return (Repo.clone_from(url=url, to_path=path))
     
+def get_active(repo):
+    return repo.head.object.hexsha
 
+    
 def get_git(repo,branch,max = 50):
-
+    
+    #a = repo.remotes.origin.fetch()
+    branch = 'origin/' + branch
+    print('----------------------------网络链接 更新ing----------------------------------')
     fifty_first_commits = list(repo.iter_commits(branch  , max_count=max))
 
 

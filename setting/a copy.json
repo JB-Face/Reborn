@@ -1,6 +1,6 @@
 {
-    "url":"https://github.com/JB-Face/javascript30day.git",
-    "path":".\\test",
+    "url":"git@github.com:JB-Face/javascript30day.git",
+    "path":".\\test2",
     "workspace":"te22222",
     "branch":"main",
     "callback":0

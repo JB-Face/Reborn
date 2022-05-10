@@ -1,5 +1,5 @@
 {
-    "url":"https://github.com/JB-Face/javascript30day.git",
+    "url":"git@github.com:JB-Face/javascript30day.git",
     "path":".\\test",
     "workspace":"testit",
     "branch":"main",

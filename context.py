@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:42
 LastEditors: JBFace
-LastEditTime: 2022-05-09 00:56:00
+LastEditTime: 2022-05-11 01:31:30
 '''
 
 import gitcore
@@ -28,64 +28,143 @@ class ButtonApp(QtWidgets.QMainWindow):
         self.tabwidget = QtWidgets.QTabWidget()
         self.main_layout.addWidget(self.tabwidget)
 
-
+        self.guidict = {}
         
         # workspace tab
         for i in context.workspacelist:
-            _tab  = self.tab(i,self.main_widget)
+            self.guidict[i.name] = {}
+            _tab  = self.tab(i,self.main_widget,self.guidict[i.name])
             self.tabwidget.addTab(_tab,i.name)
-            pass
+
         # setting
 
 
         self.setCentralWidget(self.main_widget)
 
-    def tab(self,gitlab,parent):
+    def tab(self,gitlab,parent,guidict):
         res=QtWidgets.QWidget()
 
         main =  QtWidgets.QVBoxLayout()
 
         hand_layout = QtWidgets.QHBoxLayout()
+        guidict['main'] = main
 
 
         pixmap = QtGui.QPixmap(r'C:\\Users\\57376\\Pictures\\redbull.png')
         icon= QtWidgets.QLabel()
         icon.setPixmap(pixmap)
         icon.setMaximumSize(125,125)
-        hand_layout.addWidget(icon, 0 , Qt.AlignLeft | Qt.AlignTop)
+        hand_layout.addWidget(icon, 0 , Qt.AlignLeft|QtCore.Qt.AlignTop)
         
         msmlayout = QtWidgets.QVBoxLayout()
-        msmlayout.SetMinimumSize(300,100)
+        # msmlayout.SetMinimumSize(300,100)
 
         
-        _path = QtWidgets.QLabel(text = str(gitlab.path))
-        msmlayout.addWidget(_path, 0 , Qt.AlignCenter | Qt.AlignTop)
-        _url = QtWidgets.QLabel(text = str(gitlab.url))
-        msmlayout.addWidget(_url, 0 , Qt.AlignCenter | Qt.AlignTop)
-        _name = QtWidgets.QLabel(text = str(gitlab.name))
-        msmlayout.addWidget(_name, 0 , Qt.AlignCenter | Qt.AlignTop)
+        _path = QtWidgets.QLabel(text = str('路径：')+str(gitlab.path))
+        msmlayout.addWidget(_path, 0 , Qt.AlignLeft|QtCore.Qt.AlignTop)
+        _url = QtWidgets.QLabel(text = str('网址：')+str(gitlab.url))
+        msmlayout.addWidget(_url, 0 , Qt.AlignLeft|QtCore.Qt.AlignTop)
+        _name = QtWidgets.QLabel(text = str('项目名：')+str(gitlab.name))
+        msmlayout.addWidget(_name, 0 , Qt.AlignLeft|QtCore.Qt.AlignTop)
 
 
         hand_layout.addItem(msmlayout)
 
 
+
         buttonlayout = QtWidgets.QHBoxLayout()
+        radioButton = QtWidgets.QRadioButton('run' )  
+        buttonlayout.addWidget(radioButton) 
         _updata = QtWidgets.QPushButton('updata')
+        _updata.clicked.connect(lambda :self.update_list(gitlab,guidict))
         buttonlayout.addWidget(_updata)
         _path = QtWidgets.QPushButton('path')
         buttonlayout.addWidget(_path)
         _url = QtWidgets.QPushButton('url')
         buttonlayout.addWidget(_url)
         _start = QtWidgets.QPushButton('start')
-        buttonlayout.addWidget(_start)   
+        buttonlayout.addWidget(_start) 
+
+
 
         msmlayout.addItem(buttonlayout)          
 
         main.addItem(hand_layout )
 ### list
 
+        
+
+
+        tableWidget = QtWidgets.QTableWidget()
+        
+        tableWidget.setShowGrid(False)
+        tableWidget.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        tableWidget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        tableWidget.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        tableWidget.verticalHeader().setVisible(False)#水平方向的表头
+        # self.tableWidget.horizontalHeader().setVisible(False)#垂直方向的表头
+        tableWidget.resizeColumnsToContents()
+        guidict['tableWidget'] = tableWidget
+        self.update_list(gitlab,guidict)
+
+
+        
+
         res.setLayout(main)
+
+        
         return res
+
+
+    def update_list(self,gitlab,guidict):
+        tableWidget = guidict['tableWidget']
+        main = guidict['main']
+
+        gitlist = gitlab.get_commit_list()
+        tableWidget.setRowCount(gitlist.__len__())
+        tableWidget.setColumnCount(4)
+        tableWidget.setHorizontalHeaderLabels(['commitid','time','auther','des'])
+
+        main.addWidget(tableWidget)
+
+
+
+                #将第一列的单元格宽度设置为150
+        #tableWidget.setColumnWidth(0,)
+        sha = gitlab.get_active()
+        back = QtGui.QBrush(QtGui.QColor(255,0,0))
+
+        for i,v in enumerate(gitlist):
+            active = False
+            if sha == v.hexsha:
+                active = True
+            newItem = QtWidgets.QTableWidgetItem(v.hexsha[:6])
+            if active:
+                newItem.setForeground(back)
+
+            tableWidget.setItem(i, 0, newItem)
+
+            timestr = v.committed_datetime
+            timestr = str(timestr.month) + '-' + str(timestr.day) + ' ' +str(timestr.hour) + ':'+str(timestr.minute)
+
+            newItem = QtWidgets.QTableWidgetItem(timestr )
+            if active:
+                newItem.setForeground(back)
+            tableWidget.setItem(i, 1, newItem)
+
+            newItem = QtWidgets.QTableWidgetItem(v.author.name)
+            if active:
+                newItem.setForeground(back)
+            tableWidget.setItem(i, 2, newItem)
+
+            newItem = QtWidgets.QTableWidgetItem(v.message)
+            if active:
+                newItem.setForeground(back)
+            tableWidget.setItem(i, 3, newItem)
+        pass
+
+
+    def callback(self,gitdict):
         pass
 
 
@@ -156,6 +235,9 @@ class gitlib:
 
     def get_commit_list(self):
         return gitcore.get_git(self.repo,self.branch)
+
+    def get_active(self):
+        return gitcore.get_active(self.repo)
 
 
 
