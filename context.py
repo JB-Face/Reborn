@@ -4,18 +4,23 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:42
 LastEditors: JBFace
-LastEditTime: 2022-05-11 01:31:30
+LastEditTime: 2022-05-11 23:24:46
 '''
 
 import gitcore
 import json
 import os
 import sys
+import webbrowser
 from PySide2 import QtCore, QtWidgets,QtGui
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
 from PySide2.QtCore import Qt 
+
+
+
+
 
 class ButtonApp(QtWidgets.QMainWindow):
     def __init__(self,context):
@@ -41,6 +46,38 @@ class ButtonApp(QtWidgets.QMainWindow):
 
         self.setCentralWidget(self.main_widget)
 
+
+    def callback(self,gitlab):
+        if gitlab.callback:
+            callbackpath =os.path.join(gitlab.path,gitlab.callback)
+
+            os.startfile(callbackpath)
+        pass
+
+    def actionHandler(self,guidict,gitlab):
+        widget = guidict['tableWidget']
+        commit = widget.currentRow()
+        commit  = widget.item(commit,0).text()
+        gitlab.updata(commit)
+        self.update_list(gitlab,guidict)
+
+        if guidict['run'].isChecked():
+            self.callback(gitlab)
+
+
+
+    def showContextMenu(self, gitlab,guidict):  # 创建右键菜单
+
+
+        contextMenu = QtWidgets.QMenu(self)
+        actionA = contextMenu.addAction(u'更新')
+        actionA.triggered.connect(lambda: self.actionHandler(guidict,gitlab))
+        # self.actionA = self.view.contextMenu.exec_(self.mapToGlobal(pos))  # 1
+        contextMenu.popup(QtGui.QCursor.pos())  # 2菜单显示的位置
+
+        # self.view.contextMenu.move(self.pos() + pos)  # 3
+        contextMenu.show()
+
     def tab(self,gitlab,parent,guidict):
         res=QtWidgets.QWidget()
 
@@ -50,7 +87,7 @@ class ButtonApp(QtWidgets.QMainWindow):
         guidict['main'] = main
 
 
-        pixmap = QtGui.QPixmap(r'C:\\Users\\57376\\Pictures\\redbull.png')
+        pixmap = QtGui.QPixmap(gitlab.icon)
         icon= QtWidgets.QLabel()
         icon.setPixmap(pixmap)
         icon.setMaximumSize(125,125)
@@ -74,16 +111,20 @@ class ButtonApp(QtWidgets.QMainWindow):
 
         buttonlayout = QtWidgets.QHBoxLayout()
         radioButton = QtWidgets.QRadioButton('run' )  
+        guidict['run'] = radioButton
         buttonlayout.addWidget(radioButton) 
         _updata = QtWidgets.QPushButton('updata')
         _updata.clicked.connect(lambda :self.update_list(gitlab,guidict))
         buttonlayout.addWidget(_updata)
         _path = QtWidgets.QPushButton('path')
         buttonlayout.addWidget(_path)
+        _path.clicked.connect(lambda :self.openpath(gitlab))
         _url = QtWidgets.QPushButton('url')
         buttonlayout.addWidget(_url)
+        _url.clicked.connect(lambda :self.openurl(gitlab))
         _start = QtWidgets.QPushButton('start')
         buttonlayout.addWidget(_start) 
+        _start.clicked.connect(lambda :self.callback(gitlab))
 
 
 
@@ -105,6 +146,11 @@ class ButtonApp(QtWidgets.QMainWindow):
         # self.tableWidget.horizontalHeader().setVisible(False)#垂直方向的表头
         tableWidget.resizeColumnsToContents()
         guidict['tableWidget'] = tableWidget
+
+        tableWidget.setContextMenuPolicy(Qt.CustomContextMenu)  # 右键菜单，如果不设为CustomContextMenu,无法使用customContextMenuRequested
+        tableWidget.customContextMenuRequested.connect(lambda: self.showContextMenu(gitlab,guidict))
+
+
         self.update_list(gitlab,guidict)
 
 
@@ -163,9 +209,14 @@ class ButtonApp(QtWidgets.QMainWindow):
             tableWidget.setItem(i, 3, newItem)
         pass
 
+    def openurl(self,gitlab):
+        
+        webbrowser.open(gitlab.url)
 
-    def callback(self,gitdict):
-        pass
+    def openpath(self,gitlab):
+        os.system('start explorer '+ os.path.abspath(gitlab.path))
+
+
 
 
 class context:
@@ -183,7 +234,8 @@ class context:
                     with open(os.path.join(root,i),'r') as load_f:
                         j = json.load(load_f)
                         try:
-                            a = gitlib(url = j["url"],path = j["path"],branch = j['branch'],callback=j['callback'],workspace=j["workspace"])
+                            icon = os.path.join(root,i).replace('json','png')
+                            a = gitlib(url = j["url"],path = j["path"],branch = j['branch'],callback=j['callback'],workspace=j["workspace"],icon = icon)
                             self.workspacelist.append(a)
                         except KeyError:
                             pass
@@ -215,13 +267,15 @@ class context:
 
 class gitlib:
     def __init__(self,url = 'https://github.com/JB-Face/javascript30day.git'
-                    ,path =  r'C:\x20\Reborn\test',branch = 'master',callback = None,workspace = 'test1') -> None:
+                    ,path =  r'C:\x20\Reborn\test',branch = 'master',callback = None,workspace = 'test1',icon = None) -> None:
         self.url = url
         self.path = path
         self.name = workspace     
         self.branch = branch
         self.callback = callback
         self.workspace = workspace
+        self.icon = icon
+
 
         
 

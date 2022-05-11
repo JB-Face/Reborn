@@ -3,6 +3,6 @@
     "path":".\\test2",
     "workspace":"te22222",
     "branch":"main",
-    "callback":0
+    "callback":"123.bat"
 
 }

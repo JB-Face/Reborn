@@ -3,6 +3,6 @@
     "path":".\\test",
     "workspace":"testit",
     "branch":"main",
-    "callback":0
+    "callback":"README.md"
 
 }
