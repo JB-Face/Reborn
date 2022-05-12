@@ -18,7 +18,7 @@ def get_active(repo):
     
 def get_git(repo,branch,max = 50):
     
-    #a = repo.remotes.origin.fetch()
+    a = repo.remotes.origin.fetch()
     branch = 'origin/' + branch
     print('----------------------------网络链接 更新ing----------------------------------')
     fifty_first_commits = list(repo.iter_commits(branch  , max_count=max))
