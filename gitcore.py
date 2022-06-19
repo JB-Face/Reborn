@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2022-06-11 17:25:17
+LastEditTime: 2022-06-19 15:21:41
 '''
 from git.repo import Repo
 import os
@@ -13,7 +13,8 @@ from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 import time
 import _thread
-import threading
+
+import gui
 PRO =None
 thread_1 = None
 
@@ -42,20 +43,26 @@ class Worker(QThread):
         self._isRunning = False
         self.progressBarValue.emit(0)
 
-        
 
-     
-
-def git_init(path:str,url:str):
-    print('----------------------------居然没有 初始化，等我初始化----------------------------------')
-    return (Repo.clone_from(url=url, to_path=path))
-    
+   
 def get_active(repo):
     return repo.head.object.hexsha
 
 
 def copy_file(i):
     PRO.setValue(i)
+
+
+
+def git_clone(gitlab,pro = None,callback = None,context = None,):
+    global PRO
+    PRO = pro
+    pro.setMaximum(0)        
+    context.thread_1 = Worker(add=1,pro=pro)
+    context.thread_1.progressBarValue.connect(copy_file)
+    context.thread_1.start()      
+    _thread.start_new_thread( clone_git, (gitlab,context,callback ) )
+
 
 def get_git(repo,branch,max = 50,pro = None,callback = None,int = False,context = None,path = None,url = None,):
 
@@ -77,12 +84,6 @@ def get_git(repo,branch,max = 50,pro = None,callback = None,int = False,context 
     print('upodata ' + str(repo))
     fifty_first_commits = list(repo.iter_commits(branch  , max_count=max))
 
-
-
-    # commit_log = repo.git.log('--pretty={"commit":"%h","author":"%an","summary":"%s","date":"%cd"}', max_count=50,
-    #                         date='format:%Y-%m-%d %H:%M')
-    # log_list = commit_log.split("\n")
-    # real_log_list = [eval(item) for item in log_list]
     return fifty_first_commits
 
 def internetupdata(path,pro,context,callback = None):
@@ -95,7 +96,13 @@ def internetupdata(path,pro,context,callback = None):
     if callback:
         callback()
         #PRO.setValue(0)
-
+def clone_git(gitlab,context,callback = None):
+    gitlab.repo = Repo.clone_from(url = gitlab.url, to_path=gitlab.path)
+    context.thread_1.stop()
+    PRO.setMaximum(99) 
+    print('init over') 
+    if callback:
+        callback()
 
 
 def print_time( threadName, delay,pro):
@@ -104,12 +111,7 @@ def print_time( threadName, delay,pro):
         time.sleep(0.01)
         pro.setValue(i)
 
-def fetch(a):
-    time.sleep(1)
-    print(10000000)
-    time.sleep(1)
-    print(10000000)
-    print(a)
+
 
 def git_checkout_commit(repo,commit):
 
@@ -119,7 +121,6 @@ def git_checkout_commit(repo,commit):
     repo.index.checkout(force=True,)
 
 
-    #repo.index.checkout(commit,force=True)
 
 def git_reset_head(repo):
     repo.head.reset(index=True, working_tree=True)
@@ -139,16 +140,15 @@ def is_git(path:str):
     return os.path.exists(gitpath)
 
 def init_repo(path:str,url:str):
-    if is_git(path):
-        
+    if is_git(path):        
         return Repo(path)
     else:
-        return git_init(path,url)
+        return None
 
-def update(repo,commit = None):
-    git_checkout(repo)
-    if commit == None:
-        repo.git.pull()
+# def update(repo,commit = None):
+#     git_checkout(repo)
+#     if commit == None:
+#         repo.git.pull()
 
-    pass
+#     pass
 

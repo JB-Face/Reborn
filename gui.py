@@ -4,8 +4,11 @@ from PIL import Image, ImageTk
 from PySide2.QtWidgets import *
 from PySide2.QtCore import *
 import time
-
-
+import webbrowser
+import os
+import sys
+from git.repo import Repo
+import _thread
 class Worker(QThread):
 
     progressBarValue = Signal(int)  # 更新进度条
@@ -21,6 +24,9 @@ class Worker(QThread):
 
 
 
+def repo(gitlab,boo):
+    res = Repo.clone_from(url=gitlab.url, to_path=gitlab.path)
+    boo = False
 
 class ButtonApp(QtWidgets.QMainWindow):
     def __init__(self,context):
@@ -41,6 +47,7 @@ class ButtonApp(QtWidgets.QMainWindow):
             self.guidict[i.name] = {}
             _tab  = self.tab(i,self.main_widget,self.guidict[i.name])
             self.tabwidget.addTab(_tab,i.name)
+            self.tabwidget.setTabEnabled(self.tabwidget.count()-1,False)
         
         
 
@@ -63,15 +70,19 @@ class ButtonApp(QtWidgets.QMainWindow):
         self.main_layout.addWidget(self.textbox)
 
         self.setCentralWidget(self.main_widget)
-        self.tabwidget_update(0,False)
+        self.tabwidget_update(0,True)
 
 
     def copy_file(self, i):
         self.progressBar.setValue(i)
 
 
+
+
+
     def tabwidget_update(self,active,int = True):
-        for i in range(self.tabwidget.count()-1):
+        # 初始化相关
+        for i in range(self.tabwidget.count()):
             if i != active:
                 self.tabwidget.setTabEnabled(i,False)
 
@@ -79,7 +90,8 @@ class ButtonApp(QtWidgets.QMainWindow):
             if self.context.thread_1._isRunning:
                 return 
         activetab =self.guidict[list(self.guidict)[active]]
-        # activetab['gitlab'].get_commit_list(int = True)
+
+
         self.update_list(gitlab =activetab['gitlab'] ,guidict = activetab,int = int,pro = self.progressBar)
 
 
@@ -94,8 +106,10 @@ class ButtonApp(QtWidgets.QMainWindow):
         widget = guidict['tableWidget']
         commit = widget.currentRow()
         commit  = widget.item(commit,0).text()
+        
         gitlab.updata(commit)
         self.update_list(gitlab,guidict)
+        self.context.addlog('更新到' + str(commit))
 
         if guidict['run'].isChecked():
             self.callback(gitlab)
@@ -146,7 +160,7 @@ class ButtonApp(QtWidgets.QMainWindow):
 
 
         buttonlayout = QtWidgets.QHBoxLayout()
-        radioButton = QtWidgets.QRadioButton('run' )  
+        radioButton = QtWidgets.QCheckBox('run' )  
         guidict['run'] = radioButton
         buttonlayout.addWidget(radioButton) 
         _updata = QtWidgets.QPushButton('updata')
@@ -187,7 +201,7 @@ class ButtonApp(QtWidgets.QMainWindow):
         tableWidget.customContextMenuRequested.connect(lambda: self.showContextMenu(gitlab,guidict))
 
 
-        self.update_list(gitlab,guidict,int = False)
+        #self.update_list(gitlab,guidict,int = False)
         guidict['gitlab'] = gitlab
 
 
@@ -201,11 +215,19 @@ class ButtonApp(QtWidgets.QMainWindow):
 
 
     def update_list(self,gitlab,guidict,int = False,pro = None):
+        # 是否需要 初始化
         self.context.addlog('刷新中...')
         if int:
-            gitlist = gitlab.get_commit_list(int,pro = pro,guidict = guidict,callback =lambda:self.reflistgui(gitlab,guidict))
+            if gitlab.repo:
+                gitlist = gitlab.get_commit_list(int,pro = pro,guidict = guidict,callback =lambda:self.reflistgui(gitlab,guidict))
+            else:
+                self.context.addlog('初始化库...')
+                if gitlab.init_repo_clone(pro = pro,callback =lambda:self.reflistgui(gitlab,guidict)):
+                    pass
+               
         else:
-            self.reflistgui(gitlab,guidict)
+            if gitlab.repo:
+                self.reflistgui(gitlab,guidict)
 
     def reflistgui(self,gitlab,guidict):
         tableWidget = guidict['tableWidget']
@@ -249,7 +271,7 @@ class ButtonApp(QtWidgets.QMainWindow):
             if active:
                 newItem.setForeground(back)
             tableWidget.setItem(i, 3, newItem)
-        for i in range(self.tabwidget.count()-1):
+        for i in range(self.tabwidget.count()):
                 self.tabwidget.setTabEnabled(i,True)
 
 
@@ -271,3 +293,49 @@ class ButtonApp(QtWidgets.QMainWindow):
 
 
 
+class init_ui(QWidget):
+
+    def __init__(self):
+        super(init_ui, self).__init__()
+
+    def setupUi(self):
+        self.setFixedSize(500, 90)
+        self.main_widget = QtWidgets.QWidget(self)
+        self.progressBar = QtWidgets.QProgressBar(self.main_widget)
+        self.progressBar.setGeometry(QtCore.QRect(20, 20, 450, 50))
+        # 创建并启用子线程
+        self.thread_1 = Worker2()
+        self.thread_1.progressBarValue.connect(self.copy_file)
+        self.thread_1.start()
+
+    def copy_file(self, i):
+        self.progressBar.setValue(i)
+
+
+class Worker2(QThread):
+
+    progressBarValue = Signal(int)  # 更新进度条
+
+    def __init__(self):
+        super(Worker2, self).__init__()
+
+
+    def run(self):
+        for i in range(101):
+            time.sleep(0.01)
+            self.progressBarValue.emit(i)  # 发送进度条的值 信号
+
+
+# class init_gui():
+#     def __init__(self,text,):
+#         self.text = text
+#         app = QtWidgets.QApplication()
+#         self.testIns =init_ui()
+#         self.testIns.setupUi()
+#         self.testIns.show()
+
+
+
+
+
+    

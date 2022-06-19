@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:42
 LastEditors: JBFace
-LastEditTime: 2022-06-12 00:14:52
+LastEditTime: 2022-06-19 14:25:45
 '''
 
 import gitcore
@@ -12,10 +12,8 @@ import json
 import os
 import sys
 import webbrowser
+from git.repo import Repo
 from PySide2 import QtCore, QtWidgets,QtGui
-import tkinter as tk
-import tkinter.ttk as ttk
-from PIL import Image, ImageTk
 from PySide2.QtCore import Qt 
 import time
 import gui
@@ -46,11 +44,6 @@ class context:
                             pass
 
 
-                    
-        pass
-
-    def fillworkspace(self):
-        pass
 
 
     def draw(self):
@@ -65,9 +58,6 @@ class context:
     def test(self):
         self.workspacelist[0].get_commit_list()
 
-
-    def updateloop(self):
-        self.update_all_lab()
 
 
     def addlog(self,text):
@@ -92,13 +82,11 @@ class gitlib:
         self.branch = branch
         self.callback = callback
         self.workspace = workspace
-        self.icon = icon
-
-
-        
+        self.icon = icon       
 
         self.repo = gitcore.init_repo(path,url)
-        self.list = gitcore.get_git(self.repo,self.branch,int = False)
+        if self.repo:
+            self.list = gitcore.get_git(self.repo,self.branch,int = False)
         
 
     def updata(self,commit):
@@ -110,6 +98,15 @@ class gitlib:
 
     def get_active(self):
         return gitcore.get_active(self.repo)
+
+    def init_repo_clone(self,pro = None,callback = None):
+        try:
+            gitcore.git_clone(self,pro = pro,callback=callback,context = Context)
+        except:
+            return False
+
+        return True
+
 
 
 

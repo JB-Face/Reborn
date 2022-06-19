@@ -1,7 +1,7 @@
 {
     "url":"git@github.com:JB-Face/javascript30day.git",
     "path":".\\test",
-    "workspace":"testit",
+    "workspace":"testit2",
     "branch":"main",
     "callback":"README.md"
 
