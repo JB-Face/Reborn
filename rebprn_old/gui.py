@@ -1,26 +1,32 @@
-'''
-Descripttion: 
-version: 
-Author: JBFace
-Date: 2022-05-06 22:51:42
-LastEditors: JBFace
-LastEditTime: 2022-05-11 23:24:46
-'''
 
-import gitcore
-import json
+from PySide2 import QtCore, QtWidgets,QtGui
+from PIL import Image, ImageTk
+from PySide2.QtWidgets import *
+from PySide2.QtCore import *
+import time
+import webbrowser
 import os
 import sys
-import webbrowser
-from PySide2 import QtCore, QtWidgets,QtGui
-import tkinter as tk
-import tkinter.ttk as ttk
-from PIL import Image, ImageTk
-from PySide2.QtCore import Qt 
+from git.repo import Repo
+import _thread
+class Worker(QThread):
+
+    progressBarValue = Signal(int)  # 更新进度条
+
+    def __init__(self):
+        super(Worker, self).__init__()
+
+
+    def run(self):
+        for i in range(101):
+            time.sleep(0.1)
+            self.progressBarValue.emit(i)  # 发送进度条的值 信号
 
 
 
-
+def repo(gitlab,boo):
+    res = Repo.clone_from(url=gitlab.url, to_path=gitlab.path)
+    boo = False
 
 class ButtonApp(QtWidgets.QMainWindow):
     def __init__(self,context):
@@ -32,25 +38,67 @@ class ButtonApp(QtWidgets.QMainWindow):
         self.main_widget.setLayout(self.main_layout)
         self.tabwidget = QtWidgets.QTabWidget()
         self.main_layout.addWidget(self.tabwidget)
+        self.context= context
 
         self.guidict = {}
-        
-        # workspace tab
+
+        # workspace tab init
         for i in context.workspacelist:
             self.guidict[i.name] = {}
             _tab  = self.tab(i,self.main_widget,self.guidict[i.name])
             self.tabwidget.addTab(_tab,i.name)
+            self.tabwidget.setTabEnabled(self.tabwidget.count()-1,False)
+        
+        
+
 
         # setting
+        self.tabwidget.currentChanged.connect(self.tabwidget_update)
+ 
 
+
+        self.progressBar = QtWidgets.QProgressBar(textVisible=False,)
+
+        # self.progressBar.setGeometry(QtCore.QRect(20, 20, 450, 50))
+        # 创建并启用子线程
+        # self.thread_1 = Worker()
+        # self.thread_1.progressBarValue.connect(self.copy_file)
+        # self.thread_1.start()
+        self.main_layout.addWidget(self.progressBar)
+        self.textbox = QLineEdit(self)
+        self.textbox.setEnabled(False)
+        self.main_layout.addWidget(self.textbox)
 
         self.setCentralWidget(self.main_widget)
+        self.tabwidget_update(0,True)
+
+
+    def copy_file(self, i):
+        self.progressBar.setValue(i)
+
+
+
+
+
+    def tabwidget_update(self,active,int = True):
+        # 初始化相关
+        for i in range(self.tabwidget.count()):
+            if i != active:
+                self.tabwidget.setTabEnabled(i,False)
+
+        if self.context.thread_1:
+            if self.context.thread_1._isRunning:
+                return 
+        activetab =self.guidict[list(self.guidict)[active]]
+
+
+        self.update_list(gitlab =activetab['gitlab'] ,guidict = activetab,int = int,pro = self.progressBar)
+
 
 
     def callback(self,gitlab):
         if gitlab.callback:
             callbackpath =os.path.join(gitlab.path,gitlab.callback)
-
             os.startfile(callbackpath)
         pass
 
@@ -58,8 +106,10 @@ class ButtonApp(QtWidgets.QMainWindow):
         widget = guidict['tableWidget']
         commit = widget.currentRow()
         commit  = widget.item(commit,0).text()
+        
         gitlab.updata(commit)
         self.update_list(gitlab,guidict)
+        self.context.addlog('更新到' + str(commit))
 
         if guidict['run'].isChecked():
             self.callback(gitlab)
@@ -110,11 +160,11 @@ class ButtonApp(QtWidgets.QMainWindow):
 
 
         buttonlayout = QtWidgets.QHBoxLayout()
-        radioButton = QtWidgets.QRadioButton('run' )  
+        radioButton = QtWidgets.QCheckBox('run' )  
         guidict['run'] = radioButton
         buttonlayout.addWidget(radioButton) 
         _updata = QtWidgets.QPushButton('updata')
-        _updata.clicked.connect(lambda :self.update_list(gitlab,guidict))
+        _updata.clicked.connect(lambda :self.update_list(gitlab,guidict,pro = self.progressBar,int = True))
         buttonlayout.addWidget(_updata)
         _path = QtWidgets.QPushButton('path')
         buttonlayout.addWidget(_path)
@@ -151,7 +201,9 @@ class ButtonApp(QtWidgets.QMainWindow):
         tableWidget.customContextMenuRequested.connect(lambda: self.showContextMenu(gitlab,guidict))
 
 
-        self.update_list(gitlab,guidict)
+        #self.update_list(gitlab,guidict,int = False)
+        guidict['gitlab'] = gitlab
+
 
 
         
@@ -162,20 +214,32 @@ class ButtonApp(QtWidgets.QMainWindow):
         return res
 
 
-    def update_list(self,gitlab,guidict):
-        tableWidget = guidict['tableWidget']
-        main = guidict['main']
+    def update_list(self,gitlab,guidict,int = False,pro = None):
+        # 是否需要 初始化
+        self.context.addlog('刷新中...')
+        if int:
+            if gitlab.repo:
+                gitlist = gitlab.get_commit_list(int,pro = pro,guidict = guidict,callback =lambda:self.reflistgui(gitlab,guidict))
+            else:
+                self.context.addlog('初始化库...')
+                if gitlab.init_repo_clone(pro = pro,callback =lambda:self.reflistgui(gitlab,guidict)):
+                    pass
+               
+        else:
+            if gitlab.repo:
+                self.reflistgui(gitlab,guidict)
 
-        gitlist = gitlab.get_commit_list()
+    def reflistgui(self,gitlab,guidict):
+        tableWidget = guidict['tableWidget']
+        main = guidict['main']    
+        gitlist = gitlab.get_commit_list(False,pro = None,guidict = guidict)
+
         tableWidget.setRowCount(gitlist.__len__())
         tableWidget.setColumnCount(4)
         tableWidget.setHorizontalHeaderLabels(['commitid','time','auther','des'])
 
         main.addWidget(tableWidget)
 
-
-
-                #将第一列的单元格宽度设置为150
         #tableWidget.setColumnWidth(0,)
         sha = gitlab.get_active()
         back = QtGui.QBrush(QtGui.QColor(255,0,0))
@@ -207,7 +271,11 @@ class ButtonApp(QtWidgets.QMainWindow):
             if active:
                 newItem.setForeground(back)
             tableWidget.setItem(i, 3, newItem)
-        pass
+        for i in range(self.tabwidget.count()):
+                self.tabwidget.setTabEnabled(i,True)
+
+
+        self.context.addlog('完成刷新')
 
     def openurl(self,gitlab):
         
@@ -216,85 +284,58 @@ class ButtonApp(QtWidgets.QMainWindow):
     def openpath(self,gitlab):
         os.system('start explorer '+ os.path.abspath(gitlab.path))
 
+    def update_all_lab(self):
+        for i in self.guidict:
+            self.update(i['gitlab'],i,int = True)
+
+    def update_log(self):
+        self.textbox.setText(str(self.context.log[-1]))
 
 
 
-class context:
-    def __init__(self) -> None:
-        self.workspacelist = []
-        self.getsetting()
+class init_ui(QWidget):
 
-        pass
+    def __init__(self):
+        super(init_ui, self).__init__()
 
-    def getsetting(self):
-        _path = r'setting'
-        for root, dirs, files in os.walk(_path):
-            for i in files:
-                if '.json' in i:
-                    with open(os.path.join(root,i),'r') as load_f:
-                        j = json.load(load_f)
-                        try:
-                            icon = os.path.join(root,i).replace('json','png')
-                            a = gitlib(url = j["url"],path = j["path"],branch = j['branch'],callback=j['callback'],workspace=j["workspace"],icon = icon)
-                            self.workspacelist.append(a)
-                        except KeyError:
-                            pass
+    def setupUi(self):
+        self.setFixedSize(500, 90)
+        self.main_widget = QtWidgets.QWidget(self)
+        self.progressBar = QtWidgets.QProgressBar(self.main_widget)
+        self.progressBar.setGeometry(QtCore.QRect(20, 20, 450, 50))
+        # 创建并启用子线程
+        self.thread_1 = Worker2()
+        self.thread_1.progressBarValue.connect(self.copy_file)
+        self.thread_1.start()
+
+    def copy_file(self, i):
+        self.progressBar.setValue(i)
 
 
-                    
-        pass
+class Worker2(QThread):
 
-    def fillworkspace(self):
-        pass
+    progressBarValue = Signal(int)  # 更新进度条
 
-
-    def draw(self):
-        app = QtWidgets.QApplication(sys.argv)
-        gui = ButtonApp(self)
-        gui.show()
-        sys.exit(app.exec_())
+    def __init__(self):
+        super(Worker2, self).__init__()
 
 
+    def run(self):
+        for i in range(101):
+            time.sleep(0.01)
+            self.progressBarValue.emit(i)  # 发送进度条的值 信号
 
 
-    def test(self):
-        self.workspacelist[0].get_commit_list()
-
-
-
-        
-        
-
-class gitlib:
-    def __init__(self,url = 'https://github.com/JB-Face/javascript30day.git'
-                    ,path =  r'C:\x20\Reborn\test',branch = 'master',callback = None,workspace = 'test1',icon = None) -> None:
-        self.url = url
-        self.path = path
-        self.name = workspace     
-        self.branch = branch
-        self.callback = callback
-        self.workspace = workspace
-        self.icon = icon
-
-
-        
-
-        self.repo = gitcore.init_repo(path,url)
-        self.list = gitcore.get_git(self.repo,self.branch)
-        
-
-    def updata(self,commit):
-        gitcore.git_checkout_commit(self.repo,commit)
-
-
-    def get_commit_list(self):
-        return gitcore.get_git(self.repo,self.branch)
-
-    def get_active(self):
-        return gitcore.get_active(self.repo)
+# class init_gui():
+#     def __init__(self,text,):
+#         self.text = text
+#         app = QtWidgets.QApplication()
+#         self.testIns =init_ui()
+#         self.testIns.setupUi()
+#         self.testIns.show()
 
 
 
-Context = context()
 
 
+    

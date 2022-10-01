@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:30:34
 LastEditors: JBFace
-LastEditTime: 2022-05-11 23:30:05
+LastEditTime: 2022-06-19 15:51:45
 '''
 try:
     import git
@@ -25,7 +25,6 @@ import os
 from context import Context
 
 Context.draw()
-
 
 
 
