@@ -4,13 +4,16 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2023-11-14 10:28:58
+LastEditTime: 2023-11-14 11:00:12
 '''
 from git.repo import Repo
 import os
+import _thread
+import time
 def git_init(path:str,url:str):
     print('----------------------------居然没有 初始化，等我初始化----------------------------------')
-    return (Repo.clone_from(url=url, to_path=path))
+    _thread.start_new_thread(Repo.clone_from, (url, path))
+    return True
     
 def get_active(repo):
     return repo.head.object.hexsha
@@ -32,13 +35,12 @@ def get_git(repo,branch,max = 50):
 
 
 def git_checkout_commit(repo,commit):
-
     repo.head.reset(index=True, working_tree=True)
     c = repo.commit(commit)
     repo.head.reference = c
     repo.head.reset(index=True, working_tree=True)
     # repo.index.checkout()
-
+    print('9999999999999999999999999999999')
 
     #repo.index.checkout(commit,force=True)
 
