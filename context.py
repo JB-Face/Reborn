@@ -12,11 +12,11 @@ import json
 import os
 import sys
 import webbrowser
-from PySide2 import QtCore, QtWidgets,QtGui
+from PySide6 import QtCore, QtWidgets,QtGui
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image, ImageTk
-from PySide2.QtCore import Qt 
+from PySide6.QtCore import Qt 
 
 
 

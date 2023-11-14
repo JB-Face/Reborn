@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2022-05-11 01:20:05
+LastEditTime: 2023-11-14 10:28:58
 '''
 from git.repo import Repo
 import os
@@ -33,13 +33,15 @@ def get_git(repo,branch,max = 50):
 
 def git_checkout_commit(repo,commit):
 
-    
+    repo.head.reset(index=True, working_tree=True)
     c = repo.commit(commit)
     repo.head.reference = c
-    repo.index.checkout(force=True,)
+    repo.head.reset(index=True, working_tree=True)
+    # repo.index.checkout()
 
 
     #repo.index.checkout(commit,force=True)
+
 
 def git_reset_head(repo):
     repo.head.reset(index=True, working_tree=True)
