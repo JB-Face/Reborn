@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2023-11-14 11:00:12
+LastEditTime: 2023-11-14 19:53:15
 '''
 from git.repo import Repo
 import os
@@ -26,11 +26,6 @@ def get_git(repo,branch,max = 50):
     print('----------------------------网络链接 更新ing----------------------------------')
     fifty_first_commits = list(repo.iter_commits(branch  , max_count=max))
 
-
-    # commit_log = repo.git.log('--pretty={"commit":"%h","author":"%an","summary":"%s","date":"%cd"}', max_count=50,
-    #                         date='format:%Y-%m-%d %H:%M')
-    # log_list = commit_log.split("\n")
-    # real_log_list = [eval(item) for item in log_list]
     return fifty_first_commits
 
 
@@ -40,7 +35,6 @@ def git_checkout_commit(repo,commit):
     repo.head.reference = c
     repo.head.reset(index=True, working_tree=True)
     # repo.index.checkout()
-    print('9999999999999999999999999999999')
 
     #repo.index.checkout(commit,force=True)
 
@@ -69,9 +63,3 @@ def init_repo(path:str,url:str):
     else:
         return git_init(path,url)
 
-def update(repo,commit = None):
-    git_checkout(repo)
-    if commit == None:
-        repo.git.pull()
-
-    pass
