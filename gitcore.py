@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2023-11-15 09:52:38
+LastEditTime: 2023-11-15 10:14:48
 '''
 from git.repo import Repo
 import os
@@ -12,8 +12,7 @@ import _thread
 import time
 def git_init(path:str,url:str):
     print('----------------------------居然没有 初始化，等我初始化----------------------------------')
-    _thread.start_new_thread(Repo.clone_from, (url, path))
-    return True
+    return Repo.clone_from(url, path)
     
 def get_active(repo):
     return repo.head.object.hexsha
@@ -57,8 +56,7 @@ def is_git(path:str):
     return os.path.exists(gitpath)
 
 def init_repo(path:str,url:str):
-    if is_git(path):
-        
+    if is_git(path):        
         return Repo(path)
     else:
         return git_init(path,url)

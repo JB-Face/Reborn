@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:42
 LastEditors: JBFace
-LastEditTime: 2023-11-15 09:52:00
+LastEditTime: 2023-11-15 10:13:29
 '''
 
 import gitcore
@@ -33,6 +33,13 @@ class Update_Thread(QtCore.QThread):
             time.sleep(3)
     def get_info(self,gitlib):
         gitlib.repo = gitcore.init_repo(gitlib.path,gitlib.url)
+        if not gitlib:
+            context.add_log('尚未初始化，初始化' + gitlib.name)
+            gitlib.repo = gitcore.init_repo(gitlib.path,gitlib.url)
+            if not gitlib.repo:
+                context.add_log('初始化 ' + gitlib.name+ "失败")
+                return
+
         gitlib.list = gitcore.get_git(gitlib.repo,gitlib.branch)
         gitlib.get_commit_list()    
 
@@ -54,6 +61,7 @@ class ButtonApp(QtWidgets.QMainWindow):
     def __init__(self,context):
         super().__init__()
         self.setWindowTitle("Reborn")
+        self.setWindowIcon(QtGui.QIcon('Logo.ico'))
         self.setFixedSize(1000,800) # 设置窗口固定大小
         self.main_widget = QtWidgets.QWidget()
         self.main_layout = QtWidgets.QVBoxLayout()
