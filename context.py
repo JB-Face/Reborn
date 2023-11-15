@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:42
 LastEditors: JBFace
-LastEditTime: 2023-11-14 19:51:14
+LastEditTime: 2023-11-15 09:52:00
 '''
 
 import gitcore
@@ -15,6 +15,7 @@ import time
 import webbrowser
 from PySide6 import QtCore, QtWidgets,QtGui
 from PySide6.QtCore import Qt ,QThread
+import _thread
 
 
 class Update_Thread(QtCore.QThread):
@@ -36,6 +37,19 @@ class Update_Thread(QtCore.QThread):
         gitlib.get_commit_list()    
 
 
+class pro_Thread(QtCore.QThread):
+
+    finishSignal = QtCore.Signal(int) #备用
+    def __init__(self,fun,parent=None):
+        super(pro_Thread, self).__init__(parent)
+        self.fun = fun
+    def run(self):
+        self.finishSignal.emit(0)
+        self.fun()
+        self.finishSignal.emit(1)
+
+
+
 class ButtonApp(QtWidgets.QMainWindow):
     def __init__(self,context):
         super().__init__()
@@ -45,20 +59,37 @@ class ButtonApp(QtWidgets.QMainWindow):
         self.main_layout = QtWidgets.QVBoxLayout()
         self.main_widget.setLayout(self.main_layout)
         self.tabwidget = QtWidgets.QTabWidget()
-        self.main_layout.addWidget(self.tabwidget)
+        self.pro = QtWidgets.QProgressBar(self,minimum=0,maximum=0)
+        # self.pro.alignment(Qt.AlignmentFlag.AlignRight)        
+        self.log = QtWidgets.QTextEdit(self)
+        self.log.textChanged.connect(lambda:self.log.moveCursor(QtGui.QTextCursor.End))
+
+        
+        self.log.setReadOnly(True)
+
+        self.main_layout.addWidget(self.tabwidget,stretch=15)
+        self.main_layout.addWidget(self.log,stretch=4)
+        self.main_layout.addWidget(self.pro,alignment=Qt.AlignmentFlag.AlignJustify,stretch=1)
+
+        self.pro.setMinimumWidth(1000)
+        
         self.guidict = {}        
         self.setCentralWidget(self.main_widget)
         self.context = context 
+        self.context.log_print = self.log
+        self.context.add_log('Reborn ! My Tool!!!')
+
 
 
         self.update_Thread = Update_Thread(self.context)
         self.update_Thread.finishSignal.connect(self.update)
         self.update_Thread.start()
 
-    def update(self,ls):
+    def update(self):
         if self.context.init_title == 1:
             self.update_title()
         self.update_all_list()
+        self.pro.setMaximum(100)
 
 
     def callback(self,gitlab):
@@ -72,12 +103,18 @@ class ButtonApp(QtWidgets.QMainWindow):
         widget = guidict['tableWidget']
         commit = widget.currentRow()
         commit  = widget.item(commit,0).text()
-        gitlab.updata(commit)
-        self.update_list(gitlab,guidict)
+        # _thread.start_new_thread(gitlab.updata,(commit))
+        self.context.add_log('commit: '+commit+' update')
+        Thread = pro_Thread(lambda:gitlab.updata(commit),parent=self)
+        Thread.finishSignal.connect(self.pro_update)
+        Thread.start()
 
-        if guidict['run'].isChecked():
-            self.callback(gitlab)
+        # if guidict['run'].isChecked():
+        #     self.callback(gitlab)
 
+    def pro_update(self,int):
+        
+        self.update()
 
 
     def showContextMenu(self, gitlab,guidict):  # 创建右键菜单
@@ -137,9 +174,6 @@ class ButtonApp(QtWidgets.QMainWindow):
         msmlayout.addItem(buttonlayout)          
 
         main.addItem(hand_layout )
-### list
-
-        
 
 
         tableWidget = QtWidgets.QTableWidget()
@@ -213,10 +247,11 @@ class ButtonApp(QtWidgets.QMainWindow):
         pass
 
     def openurl(self,gitlab):
-        
+        self.context.add_log('open url'+str(gitlab.url))
         webbrowser.open(gitlab.url)
 
     def openpath(self,gitlab):
+        self.context.add_log('open path',str(gitlab.path))
         os.system('start explorer '+ os.path.abspath(gitlab.path))
 
     def update_all_list(self):        
@@ -241,6 +276,7 @@ class gitlib:
     def updata(self,commit):
         #_thread.start_new_thread(gitcore.git_checkout_commit,(self.repo,commit))
         gitcore.git_checkout_commit(self.repo,commit)
+        time.sleep(3)
 
     def get_commit_list(self):
         self.commit_list = gitcore.get_git(self.repo,self.branch)
@@ -258,6 +294,9 @@ class context:
         self.init_title = 0
 
         self.set_setting()
+
+        self.log_line = []
+        self.log_print = None
 
     def set_setting(self):
         '''
@@ -285,6 +324,15 @@ class context:
     def update_active(self):
         if self.active == None:
             self.active = self.workspacelist[0]
+
+    def add_log(self,log):
+        
+        if self.log_print:
+            hand = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            log = '['+hand+']  '+str(log)
+            self.log_line.append(log + '\n')
+            self.log_print.append(self.log_line[-1])
+           
 
 Context = context()
 

@@ -4,7 +4,7 @@ version:
 Author: JBFace
 Date: 2022-05-06 22:51:15
 LastEditors: JBFace
-LastEditTime: 2023-11-14 19:53:15
+LastEditTime: 2023-11-15 09:52:38
 '''
 from git.repo import Repo
 import os
@@ -23,7 +23,6 @@ def get_git(repo,branch,max = 50):
     
     a = repo.remotes.origin.fetch()
     branch = 'origin/' + branch
-    print('----------------------------网络链接 更新ing----------------------------------')
     fifty_first_commits = list(repo.iter_commits(branch  , max_count=max))
 
     return fifty_first_commits
@@ -34,6 +33,7 @@ def git_checkout_commit(repo,commit):
     c = repo.commit(commit)
     repo.head.reference = c
     repo.head.reset(index=True, working_tree=True)
+
     # repo.index.checkout()
 
     #repo.index.checkout(commit,force=True)
